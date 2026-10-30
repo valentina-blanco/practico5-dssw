@@ -55,7 +55,7 @@ Alejandro Piccardo
 
 ## Introducción
 
-El presente práctico tiene como objetivo 
+El presente práctico tiene como objetivo aplicar una nueva iteración del [OWASP Threat Modeling Process](https://owasp.org/projects/threat-dragon) sobre un sistema de gestión de torneos que iumplementa un nuevo tablero de puntajes público en Internet. La idea principal es poder implementar un modelo de amenazas como también realizar un diagrama de arquitectura con los nuevos cambios aplicados.
 
 ---
 
