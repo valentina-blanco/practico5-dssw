@@ -59,11 +59,11 @@ Alejandro Piccardo
 
 ## Introducción
 
-El presente práctico tiene como objetivo aplicar una nueva iteración del [OWASP Threat Modeling Process](https://owasp.org/projects/threat-dragon) sobre un sistema de gestión de torneos que implementa un nuevo tablero de puntajes público en Internet. La idea principal es poder implementar un modelo de amenazas como también realizar un diagrama de arquitectura con los nuevos cambios aplicados.
+El presente práctico tiene como objetivo aplicar una nueva iteración del **OWASP Threat Modeling Process** sobre el sistema de gestión de torneos de una federación deportiva, analizado en el teórico, al cual se le incorpora un tablero de puntajes público en Internet. El entregable comprende un diagrama de arquitectura que soporte el nuevo requerimiento y una nueva versión del modelo de amenazas, con los riesgos y las mitigaciones asociados. El diagrama y las tablas del modelo se elaboraron con [OWASP Threat Dragon](https://owasp.org/www-project-threat-dragon/) como herramienta de referencia.
 
 La federación incorpora un tablero de puntajes público, accesible desde una URL, con resultados en vivo y de torneos anteriores.
 
-**Preocupación del presidente:** que alguien modifique desde Internet la nota de una gimnasta.
+**Preocupación del presidente:** Que alguien modifique desde Internet la nota de una gimnasta.
 
 **Objetivos de negocio de esta iteración:**
 
@@ -73,7 +73,25 @@ La federación incorpora un tablero de puntajes público, accesible desde una UR
 4. Protección de datos personales (Ley N.º 18.331)
 5. Reputación de la federación
 
-El análisis sigue los cuatro pasos del OWASP Threat Modeling Process: (1) determinar el alcance, (2) determinar amenazas, (3) determinar contramedidas y mitigaciones, y (4) evaluar el análisis realizado.
+### Metodología
+
+El análisis adopta la perspectiva de un potencial atacante, en lugar de la del defensor, y sigue los cuatro pasos del OWASP Threat Modeling Process. El resultado es este documento, que detalla cada paso y sus resultados.
+
+1. **Determinar el alcance (descomponer la aplicación).** Se recopila el diagrama de arquitectura y se dibujan los diagramas de flujo de datos (DFD) en notación Yourdon, con actores externos, procesos, almacenes de datos, flujos y fronteras de confianza. Sobre esa base se identifican:
+   * las **dependencias externas**, es decir, los elementos distintos del código fuente que definen el ambiente de ejecución, cada una con un ID y una descripción;
+   * los **puntos de entrada** que un adversario podría utilizar;
+   * los **activos**, entendidos como cualquier elemento que se quiera proteger, desde un dato hasta un servidor;
+   * los **niveles de confianza**, que representan los niveles de acceso otorgados a terceras entidades.
+
+2. **Determinar amenazas.** Se aplica **STRIDE** (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service y Elevation of privilege) sobre cada componente y flujo de los DFD. Las amenazas se priorizan con **DREAD** (Damage, Reproducibility, Exploitability, Affected users y Discoverability). El puntaje es el promedio de las cinco métricas, y Discoverability se asume en 10 salvo que exista una buena razón para otro valor. El ranking se ordena de forma descendente y el puntaje se expresa como nivel de severidad según la escala cualitativa de CVSS v4.0: Crítica (9.0 a 10.0), Alta (7.0 a 8.9), Media (4.0 a 6.9) y Baja (0.1 a 3.9).
+
+3. **Determinar las contramedidas y mitigaciones.** Para cada amenaza se selecciona un tratamiento, considerando la probabilidad del ataque, el daño que puede causar, el costo de implementar la contramedida y la complejidad de operarla:
+   * **Aceptar:** el impacto en el negocio se considera tolerable y no se realiza otra acción. La decisión corresponde al dueño del proceso de negocio y nunca se toma exclusivamente desde el punto de vista técnico.
+   * **Eliminar:** se suprime el componente o la funcionalidad que introduce el riesgo.
+   * **Mitigar:** se agregan validaciones, controles u otras modificaciones que reducen el impacto. Se obtiene un riesgo residual, que debe valorarse y ser suficientemente bajo para ser aceptable.
+   * **Transferir:** el riesgo se traslada a un tercero, como un seguro o un proveedor que se encargue de la funcionalidad o del activo.
+
+4. **Evaluar el análisis realizado.** Se determina si existen amenazas cuyo riesgo residual supere el umbral definido. Si no quedan amenazas por tratar y se cuenta con la lista de controles a implementar, el análisis se considera concluido. En caso contrario, se requiere una nueva iteración.
 
 ---
 
@@ -86,15 +104,39 @@ El análisis sigue los cuatro pasos del OWASP Threat Modeling Process: (1) deter
 
 ## Diagrama de Arquitectura
 
-La arquitectura propuesta se divide en tres zonas separadas por firewalls:
+### Arquitectura anterior
+
+El sistema analizado en el teórico estaba pensado para uso interno de la federación. Su arquitectura, que muestra la Figura 1, tenía cuatro componentes: una App Mobile y, dentro del bloque de servidores, el servicio REST, la aplicación Web y la base de datos.
+
+- Los **jueces** utilizaban la App Mobile en tabletas de la federación y enviaban las notas al servicio REST.
+- La **Mesa de Control** y el **Administrador** accedían a la aplicación Web por HTTP, y esta consumía el servicio REST.
+- El servicio REST era el único que accedía a la base de datos, mediante JDBC.
+
+Todos los componentes de servidor residían en una única zona ("Servidores"). No existía segmentación de red ni ningún componente expuesto a Internet, ya que el acceso se limitaba a los usuarios autenticados conectados a la red local de la arena.
+
+*Figura 1: Arquitectura anterior del sistema de gestión de torneos*
+
+![Figura 1: Arquitectura anterior del sistema de gestión de torneos](images/diagrama_arquitectura_teorico.png)
+
+### Arquitectura propuesta
+
+La arquitectura propuesta conserva los componentes existentes (App Mobile, Web, API REST y base de datos), que permanecen en la red interna y siguen sin ser accesibles desde Internet. Sus diferencias con la arquitectura anterior son las siguientes:
+
+- **Nuevo actor:** se incorpora el público anónimo de Internet, que solo puede consultar resultados.
+- **Segmentación en tres zonas** separadas por firewalls (Internet, DMZ y red interna), en lugar de una única zona de servidores.
+- **Nueva zona DMZ**, con CDN/WAF/reverse proxy, tablero público (SPA estática en nginx), API pública de **solo lectura** (solo GET), BD de publicación y monitoreo y logs.
+- **Nueva BD de publicación**, separada de la BD principal, con solo datos publicables.
+- **Nuevo servicio de sincronización (publicador)** en la red interna, que es el único vínculo entre ambas zonas y publica hacia la DMZ de forma unidireccional.
+
+Las zonas son las siguientes:
 
 - **Internet:** público anónimo (navegador), que accede por HTTPS.
 - **DMZ:** CDN/WAF/reverse proxy, tablero público (SPA estática en nginx), API pública de **solo lectura** (solo GET), BD de publicación (base separada con datos publicables) y monitoreo y logs.
 - **Red interna (arena, WiFi con SSID exclusivo):** App Mobile del Juez, Web de Mesa de Control/Admin, API REST interna, BD principal (PostgreSQL) y servicio de sincronización (publicador).
 
-![Figura 1: Arquitectura propuesta para el tablero de puntajes público](diagrama_arquitectura_tablero_publico.png)
+*Figura 2: Arquitectura propuesta para el tablero de puntajes público*
 
-*Figura 1: Arquitectura propuesta para el tablero de puntajes público*
+![Figura 2: Arquitectura propuesta para el tablero de puntajes público](images/diagrama_arquitectura_tablero_publico.png)
 
 ### Principios de diseño
 
@@ -122,6 +164,8 @@ La arquitectura propuesta se divide en tres zonas separadas por firewalls:
 
 #### Dependencias externas nuevas
 
+Siguiendo la numeración del modelo de amenazas anterior:
+
 | ID | Descripción |
 |---|---|
 | 6 | Tablero público (SPA) en nginx sobre Linux hardenizado, en la DMZ. Solo contenido estático. |
@@ -135,6 +179,8 @@ La arquitectura propuesta se divide en tres zonas separadas por firewalls:
 
 #### Puntos de entrada nuevos
 
+Siguiendo la numeración del modelo de amenazas anterior:
+
 | ID | Nombre | Descripción | Nivel de confianza |
 |---|---|---|---|
 | 4 | Puerto HTTPS público | Único puerto expuesto a Internet (CDN/WAF) | (5) Anónimo de Internet |
@@ -145,40 +191,142 @@ La arquitectura propuesta se divide en tres zonas separadas por firewalls:
 
 #### Niveles de confianza
 
-Se mantienen (1) Anónimo de la red local, (2) Administrador, (3) Mesa de Control y (4) Juez. Se agregan (5) Anónimo de Internet, solo lectura de datos publicados, y (6) Servicio de sincronización, cuenta de servicio sin privilegios de administración.
+Se mantienen:
+1. Anónimo de la red local
+2. Administrador
+3. Mesa de Control
+4. Juez. 
+
+Se agregan:
+
+5. Anónimo de Internet: Solo lectura de datos publicados.
+6. Servicio de sincronización: cuenta de servicio sin privilegios de administración.
 
 #### Activos principales
 
 Notas de los gimnastas (integridad, crítico), resultados publicados, datos personales de gimnastas y jueces, credenciales y claves del canal de sincronización, disponibilidad del tablero, aislamiento de la red interna.
 
-#### DFD: flujos nuevos (continúan la numeración del DFD nivel 2 existente)
+#### DFD nivel 1
 
-| Flujo | Origen → Destino | Datos |
-| --- | --- | --- |
-| 12 | Público → CDN/WAF | Pedidos HTTPS de lectura |
-| 13 | CDN/WAF → Tablero estático | Contenido estático (SPA) |
-| 14 | CDN/WAF → API pública | GET de resultados en vivo e históricos |
-| 15 | API pública → BD de publicación | Consultas SELECT |
-| 16 | BD principal → Servicio de sincronización | Resultados confirmados |
-| 17 | Servicio de sincronización → BD de publicación | Resultados firmados (mTLS) |
+El DFD nivel 1 representa el sistema como un único proceso, dentro de la frontera "Sistema a desarrollar". Respecto de la versión anterior, se incorpora el actor externo **Público anónimo**, que accede desde Internet y solo puede consultar resultados.
+
+*Figura 3: DFD nivel 1*
+
+```mermaid
+flowchart LR
+    juez["Juez"]
+    mesa["Mesa de Control"]
+    admin["Admin"]
+    publico["Público anónimo<br/>(Internet)"]
+
+    subgraph FRONTERA["Sistema a desarrollar"]
+        sistema(("Sistema"))
+    end
+
+    juez -->|"Autenticación, puntajes"| sistema
+    mesa -->|"Resultados, gimnastas y clubes"| sistema
+    admin -->|"Usuarios, torneos"| sistema
+    publico <-->|"Consulta de resultados<br/>(solo lectura)"| sistema
+
+    style FRONTERA fill:#ffffff,stroke:#333333,stroke-width:2px,stroke-dasharray:8 5
+```
+
+#### DFD nivel 2
+
+El DFD nivel 2 detalla los componentes nuevos y su relación con el sistema existente, delimitados por tres fronteras de confianza: Internet, DMZ y red interna (LAN). El sistema existente (App Mobile, App Web y REST) se representa como un proceso múltiple, porque sus flujos 1 a 11 no cambian. Los flujos **12** (Internet → DMZ) y **17** (red interna → DMZ) cruzan fronteras de confianza. El flujo **16** ocurre dentro de la red interna y los flujos **13**, **14** y **15** dentro de la DMZ.
+
+Notación Yourdon: el cuadrado es un actor externo, el círculo un proceso, el doble círculo un proceso múltiple, el cilindro un almacén de datos y la línea punteada gruesa una frontera de confianza. Las líneas punteadas corresponden a flujos existentes.
+
+*Figura 4: DFD nivel 2*
+
+```mermaid
+flowchart LR
+    subgraph INET["Frontera: Internet"]
+        publico["Público anónimo"]
+    end
+
+    subgraph DMZ["Frontera: DMZ"]
+        cdn(("CDN / WAF /<br/>Reverse proxy"))
+        spa[("Tablero público<br/>estático")]
+        apipub(("API pública<br/>de lectura"))
+        bdpub[("BD de<br/>publicación")]
+    end
+
+    subgraph LAN["Frontera: Red interna (LAN)"]
+        juez["Juez"]
+        mesa["Mesa de Control"]
+        admin["Admin"]
+        sistema((("Sistema existente<br/>App Mobile, App Web, REST")))
+        bd[("BD principal")]
+        sync(("Servicio de<br/>sincronización"))
+    end
+
+    publico -->|"12"| cdn
+    cdn -->|"13"| spa
+    cdn -->|"14"| apipub
+    apipub -->|"15"| bdpub
+    bd -->|"16"| sync
+    sync -->|"17"| bdpub
+
+    juez -.->|"existentes<br/>(1 a 10)"| sistema
+    mesa -.->|"existentes<br/>(1 a 10)"| sistema
+    admin -.->|"existentes<br/>(1 a 10)"| sistema
+    sistema -.->|"11<br/>(existente)"| bd
+
+    style INET fill:#ffffff,stroke:#333333,stroke-width:2px,stroke-dasharray:8 5
+    style DMZ fill:#ffffff,stroke:#333333,stroke-width:2px,stroke-dasharray:8 5
+    style LAN fill:#ffffff,stroke:#333333,stroke-width:2px,stroke-dasharray:8 5
+```
+
+
+#### Flujos del DFD nivel 2
+
+Los flujos nuevos continúan la numeración del DFD nivel 2 existente.
+
+- **1 a 11** - Sin cambios respecto del DFD nivel 2 existente (incluye 11 - REST -> BD principal: Usuarios, passwords, notas, gimnastas, torneos)
+- **12** - Público -> CDN/WAF: Pedidos HTTPS de lectura
+- **13** - CDN/WAF -> Tablero estático: Contenido estático (SPA)
+- **14** - CDN/WAF -> API pública: GET de resultados en vivo e históricos
+- **15** - API pública -> BD de publicación: Consultas SELECT
+- **16** - BD principal -> Servicio de sincronización: Resultados confirmados
+- **17** - Servicio de sincronización -> BD de publicación: Resultados firmados (mTLS)
 
 <a name="paso-2"></a>
 
 ### Paso 2: Determinar amenazas
 
-Las amenazas se identificaron aplicando **STRIDE** sobre los componentes y flujos nuevos del **DFD** (flujos 12 a 17) y se priorizaron con **DREAD**.
+En este paso se identifican las amenazas que podrían afectar a los componentes y flujos nuevos (flujos 12 a 17 del DFD nivel 2) y se las ordena según su gravedad. Para ello se emplean tres herramientas, que se describen a continuación para facilitar la lectura del informe.
 
-Orden de las métricas:
+#### STRIDE: identificación de amenazas
 
-1. Damage
-2. Reproducibility
-3. Exploitability
-4. Affected users
-5. Discoverability
+**STRIDE** es una metodología desarrollada en Microsoft que clasifica las amenazas en seis categorías, cuyas iniciales forman su nombre. Se aplica recorriendo cada componente y cada flujo del DFD y preguntándose, para cada categoría, qué podría salir mal. Es un ejercicio que promueve pensar el sistema como lo haría un atacante.
 
-Discoverability se asume en 10 salvo que haya una buena razón, y el puntaje es el promedio de las cinco. Se valora el riesgo inherente, es decir, sin la mitigación propuesta.
+| Categoría | Significado | Ejemplo en este sistema |
+| --- | --- | --- |
+| **S**poofing (suplantación de identidad) | Hacerse pasar por otro usuario, dispositivo o sistema | Suplantar al servicio de sincronización o crear un sitio falso que imite al tablero |
+| **T**ampering (manipulación de datos) | Alterar datos o configuraciones sin autorización | Modificar la nota de una gimnasta |
+| **R**epudiation (repudio) | Negar haber realizado una acción, sin que exista evidencia que lo contradiga | Cambiar una nota sin que quede registro de quién lo hizo |
+| **I**nformation disclosure (revelación de información) | Exponer datos a quienes no deberían verlos | Que la API pública devuelva datos personales o notas aún no confirmadas |
+| **D**enial of service (denegación de servicio) | Dejar el sistema fuera de servicio o degradado | Saturar el tablero durante el torneo |
+| **E**levation of privilege (elevación de privilegios) | Obtener más permisos de los autorizados | Comprometer la DMZ y llegar desde allí a la red interna |
 
-Para expresar el puntaje como nivel de severidad se usa la escala cualitativa de **CVSS** v4.0:
+#### DREAD: priorización de amenazas
+
+No todas las amenazas tienen la misma gravedad, por lo que se las prioriza con **DREAD**. Este método asigna a cada amenaza un puntaje del 1 al 10 en cinco métricas, siempre en el siguiente orden:
+
+| Métrica | Pregunta que responde | Un 10 significa |
+| --- | --- | --- |
+| **D**amage (daño) | ¿Cuánto daño puede causar? | Elude todos los controles y obtiene control total |
+| **R**eproducibility (reproducibilidad) | ¿Qué tan fácil es repetir el ataque? | Funciona siempre |
+| **E**xploitability (explotabilidad) | ¿Cuánto esfuerzo y experiencia requiere? | Un principiante con una computadora común puede hacerlo |
+| **A**ffected users (usuarios afectados) | ¿Cuánta gente se ve afectada? | Afecta a todos los usuarios |
+| **D**iscoverability (detectabilidad) | ¿Qué tan fácil es descubrir la debilidad? | Es muy fácil de encontrar |
+
+El puntaje final de cada amenaza es el promedio de las cinco métricas. Por ejemplo, para T1 se calcula (10 + 8 + 5 + 10 + 10) / 5 = 8.6. Discoverability se asume en 10 salvo que haya una buena razón para otro valor, de modo que el resto de las métricas determine el orden. Se valora el riesgo inherente, es decir, el riesgo antes de aplicar las mitigaciones propuestas.
+
+#### CVSS: nivel de severidad
+
+**CVSS** (Common Vulnerability Scoring System) es un estándar abierto, mantenido por FIRST (Forum of Incident Response and Security Teams), que se usa para comunicar la gravedad de las vulnerabilidades con un puntaje de 0.0 a 10.0. En este informe no se calculó un puntaje CVSS completo: se utiliza únicamente su escala cualitativa (versión 4.0) para traducir el puntaje DREAD a un nivel de severidad fácil de interpretar:
 
 - **Crítica - 9.0 a 10.0**
 - **Alta - 7.0 a 8.9**
@@ -186,6 +334,14 @@ Para expresar el puntaje como nivel de severidad se usa la escala cualitativa de
 - **Baja - 0.1 a 3.9**
 
 Los valores DREAD son una estimación del equipo y se pueden recalibrar.
+
+#### Ranking de amenazas
+
+Cómo leer la tabla:
+
+- **ID:** identificador fijo de cada amenaza, asignado en el orden en que se identificó. Se mantiene en los pasos siguientes. La tabla está ordenada por severidad, de mayor a menor, por lo que los ID no son correlativos.
+- **Flujo:** número del flujo del DFD nivel 2 afectado.
+- **DREAD (D,R,E,A,D):** puntajes de las cinco métricas, en el orden Damage, Reproducibility, Exploitability, Affected users y Discoverability, seguidos de su promedio.
 
 | ID | STRIDE | Amenaza | Flujo | DREAD (D,R,E,A,D) | Severidad |
 | --- | --- | --- | --- | --- | --- |
@@ -207,19 +363,51 @@ Los valores DREAD son una estimación del equipo y se pueden recalibrar.
 | T9 | Information disclosure | Errores detallados o banners de versión | 13-14 | (1,10,5,2,10) = **5.6** | Media |
 | T16 | Information disclosure | Lectura de los mensajes de sincronización en tránsito | 17 | (5,5,3,5,10) = **5.6** | Media |
 
+#### Criterio de puntuación DREAD
+
+Los puntajes se asignaron con la escala del teórico, donde 10 representa el peor caso y los valores bajos el opuesto. Se aplicaron estos criterios:
+
+- **Damage:** se valoró según los objetivos de negocio. Se reservó el 10 para las amenazas que comprometen la integridad de las notas (la preocupación del presidente) o que dan acceso a la red interna. Se asignaron valores bajos (1 a 3) cuando solo se afecta información que ya es pública.
+- **Reproducibility:** valores altos (8 a 10) cuando el ataque funciona siempre que se cumplan las condiciones de base, y valores medios (5 a 7) cuando depende de circunstancias particulares, como un error humano o una versión vulnerable.
+- **Exploitability:** valores altos (8) cuando existen herramientas o servicios al alcance de cualquiera, y valores bajos (3 a 4) cuando se requiere acceso previo a zonas protegidas, como el canal de sincronización o la red interna.
+- **Affected users:** 10 cuando el ataque afecta a todos los usuarios del tablero o a todos los gimnastas, y valores menores cuando solo alcanza a un subconjunto.
+- **Discoverability:** 10 en todos los casos, salvo T15, por la razón que se indica a continuación.
+
+| ID | Justificación de los puntajes |
+| --- | --- |
+| T14 | Una nota errónea publicada afecta la clasificación y la reputación, como ya ocurrió en el pasado (D=8). No requiere atacante: basta un error humano (E=10). Depende de que el error ocurra (R=7). Lo ven todos (A=10). |
+| T1 | Compromete la integridad de las notas, objetivo central del sistema (D=10). Requiere encontrar un endpoint de escritura o un método HTTP sin restringir (E=5). |
+| T2 | Permite leer o alterar la BD de publicación (D=8). Existen herramientas automáticas, pero se necesita un parámetro vulnerable (E=6). |
+| T10 | Deja el tablero fuera de servicio, pero el sistema interno sigue operando (D=6). Existen servicios de DDoS al alcance de cualquiera (E=8). |
+| T8 | Expone datos personales protegidos por la Ley 18.331 (D=8). Requiere encontrar el campo expuesto en la API (E=5). |
+| T3 | Permite publicar notas falsas (D=10). Requiere acceso al canal y a sus credenciales, por eso la explotabilidad es baja (E=4). |
+| T6 | Daña la reputación de la federación (D=7). Registrar un dominio parecido es sencillo (E=6). Afecta a quienes visitan el sitio falso (A=9). |
+| T12 | Da acceso a la red interna (D=10). Requiere comprometer antes un componente de la DMZ (R=5, E=5). |
+| T5 | Muestra datos falsos en el navegador, pero no altera la base de datos (D=6). |
+| T13 | El impacto depende de la vulnerabilidad concreta (D=7). Depende de las versiones instaladas (R=6) y existen exploits conocidos (E=6). |
+| T4 | Requiere acceso al canal de sincronización (E=3) y su resultado depende del momento del ataque (R=5). |
+| T7 | Los datos son públicos, por lo que el daño es bajo (D=3). Siempre reproducible si el atacante está en la ruta de red (R=10), pero solo afecta a quienes comparten esa red (A=5). |
+| T11 | Los datos son públicos (D=2). Un script simple alcanza (E=8). El efecto sobre los usuarios es marginal (A=3). |
+| T17 | Los resultados en vivo quedan desactualizados, pero el sistema interno sigue operando (D=4). Lo percibe todo el público (A=10). |
+| T15 | Dificulta resolver disputas (D=6). Se manifiesta siempre que falte el registro (R=10). Discoverability=5: la falta de trazabilidad no es visible desde afuera y solo se advierte ante una disputa. |
+| T9 | Daño mínimo (D=1) y poca gente afectada (A=2). |
+| T16 | Los mensajes de sincronización pueden revelar notas aún no publicadas (D=5). Requiere acceso al canal (E=3). |
+
 <a name="paso-3"></a>
 
 ### Paso 3: Determinar las contramedidas y mitigaciones
 
-Para cada amenaza se eligió un tratamiento (aceptar, eliminar, mitigar o transferir) y se estimó el riesgo residual.
+Para cada amenaza se eligió un tratamiento (aceptar, eliminar, mitigar o transferir) y se estimó el riesgo residual, es decir, el riesgo que subsiste después de aplicar las contramedidas. La elección consideró la probabilidad del ataque, el daño que puede causar, el costo de implementar la contramedida y la complejidad de operarla, cuidando que no contradiga necesidades del negocio, como la transparencia de los resultados.
+
+**Criterio de aceptabilidad del riesgo residual:** un riesgo residual Bajo se considera aceptable. Un riesgo residual Medio solo puede aceptarse con la aprobación formal del dueño del proceso de negocio (la federación). Un riesgo residual Alto o Crítico no es aceptable y exige nuevas contramedidas.
 
 | ID | Tratamiento | Mitigación | Riesgo residual |
 | --- | --- | --- | --- |
 | T14 | Mitigar | Solo se publican resultados confirmados por la Mesa de Control; las correcciones requieren doble control y quedan versionadas y visibles | Medio |
-| T1 | **Eliminar** | No existe endpoint de escritura en la DMZ; solo GET/HEAD y el WAF bloquea el resto; la API usa una cuenta de BD de solo SELECT; no hay ruta hacia la BD principal | Bajo |
+| T1 | **Eliminar** (con defensa en profundidad) | Se elimina la funcionalidad de escritura de la zona pública: no existe endpoint de escritura en la DMZ ni ruta hacia la BD principal. Como defensa adicional, la API solo acepta GET/HEAD (el WAF bloquea el resto) y usa una cuenta de BD de solo SELECT | Bajo |
 | T2 | Mitigar | Consultas parametrizadas, validación con lista blanca, cuenta de solo lectura, WAF | Bajo |
-| T10 | Mitigar y Transferir | CDN con caché de 1 a 2 s, protección anti-DDoS del proveedor, rate limiting, escalado; el sistema interno sigue operando si cae el tablero | Medio |
-| T8 | Mitigar | BD de publicación con solo datos publicables, DTOs explícitos, revisión de privacidad (Ley 18.331) | Bajo |
+| T10 | Mitigar y Transferir | CDN con caché de 1 a 2 s, rate limiting y escalado; la parte volumétrica del ataque se transfiere a la protección anti-DDoS del proveedor del CDN; el sistema interno sigue operando si cae el tablero | Medio |
+| T8 | Mitigar | BD de publicación con solo datos publicables, DTOs explícitos y revisión de privacidad previa a la publicación (ver la aclaración sobre la Ley N.º 18.331 al final de este paso) | Bajo |
 | T3 | Mitigar | mTLS, mensajes firmados, gestor de secretos con rotación de claves, firewall por IP y puerto | Bajo |
 | T6 | Mitigar | Dominio oficial, HSTS, DNSSEC si es posible, difusión de la URL oficial por canales de la federación | Medio |
 | T12 | Mitigar | Segmentación con firewall (la DMZ no inicia conexiones hacia adentro), sin credenciales internas en la DMZ, mínimo privilegio, hardening | Bajo |
@@ -227,31 +415,47 @@ Para cada amenaza se eligió un tratamiento (aceptar, eliminar, mitigar o transf
 | T13 | Mitigar | Parches, actualización de dependencias, análisis SCA en el pipeline | Bajo |
 | T4 | Mitigar | Identificador y marca de tiempo por mensaje, firma y verificación de integridad | Bajo |
 | T7 | Mitigar | TLS 1.2+ obligatorio, redirección HTTP a HTTPS, HSTS, certificado de CA reconocida | Bajo |
-| T11 | **Aceptar** (parcial) | Los resultados son públicos por el principio de transparencia; se acepta el scraping razonable, con rate limiting y límite de conexiones por cliente | Bajo |
-| T17 | Mitigar | Monitoreo y alertas sobre el publicador, reintentos con cola de mensajes, indicador de "última actualización" en el tablero y publicación manual de contingencia por la Mesa de Control; el sistema interno sigue operando | Bajo |
+| T11 | **Mitigar** y **Aceptar** | Se acepta el scraping razonable, porque los resultados son públicos por el principio de transparencia. Se mitiga el uso abusivo con rate limiting y límite de conexiones por cliente | Bajo |
+| T17 | Mitigar | Monitoreo y alertas sobre el publicador, reintentos con cola de mensajes, indicador de "última actualización" en el tablero y publicación manual de contingencia por la Mesa de Control a través del propio servicio de sincronización, sin habilitar otro canal de escritura hacia la DMZ; el sistema interno sigue operando | Bajo |
 | T15 | Mitigar | Auditoría (usuario, fecha, valor anterior y nuevo, hash de lo publicado), logs centralizados y alertas | Bajo |
 | T9 | Mitigar | Errores genéricos al cliente, detalle solo en logs internos | Bajo |
 | T16 | Mitigar | mTLS con TLS 1.2+ en el canal, y mensajes con solo datos publicables (sin datos personales ni notas provisorias) | Bajo |
 
-La aceptación de T11 la debe formalizar el dueño del proceso de negocio (la federación), no el equipo técnico.
+Las aceptaciones deben ser formalizadas por el dueño del proceso de negocio (la federación) y nunca se realizan exclusivamente desde el punto de vista técnico. Esto incluye la aceptación del scraping razonable (T11) y la de los riesgos residuales Medios (T14, T10 y T6).
+
+#### Aclaración sobre la Ley N.º 18.331 (T8)
+
+La Ley N.º 18.331, de Protección de Datos Personales, regula el tratamiento de datos personales en Uruguay. Como el tablero publica nombres de gimnastas junto con sus clubes y notas, la ley resulta aplicable. Sus requisitos principales se reflejan en el diseño de la siguiente manera:
+
+- **Datos adecuados y no excesivos (art. 7) y finalidad (art. 8):** la BD de publicación contiene solo los datos necesarios para mostrar resultados, y la API usa DTOs explícitos. Los datos se publican únicamente para ese fin.
+- **Consentimiento informado (art. 9):** el tratamiento requiere, en principio, consentimiento previo, expreso e informado. Corresponde a la federación definir y documentar la base que habilita la publicación.
+- **Seguridad (art. 10):** las contramedidas de este paso buscan evitar la adulteración, la pérdida y el acceso no autorizado a los datos.
+- **Inscripción (arts. 28 y 29):** toda base de datos debe inscribirse ante la URCDP, por lo que la federación debe verificar la situación de la BD de publicación.
+
+Para mayor información, se puede visitar la [página oficial de IMPO.](https://www.impo.com.uy/bases/leyes/18331-2008)
 
 <a name="paso-4"></a>
 
 ### Paso 4: Evaluar el análisis realizado
 
-Tras aplicar las mitigaciones, ninguna amenaza queda con riesgo residual alto. Las que mantienen riesgo residual medio son:
+En este paso se determina si el análisis está concluido, es decir, si subsiste alguna amenaza cuyo riesgo residual supere el umbral de aceptabilidad definido en el Paso 3: un riesgo Bajo es aceptable, uno Medio requiere la aprobación formal de la federación y uno Alto o Crítico no es aceptable.
 
-- **T14 (nota errónea):** depende de un proceso humano. La mitigación técnica (confirmación y control cuatro ojos) reduce el riesgo, pero no lo elimina.
-- **T10 (DDoS):** depende de la capacidad del proveedor de CDN; el riesgo se transfiere en buena parte.
-- **T6 (sitio falso):** la federación no controla del todo a los usuarios finales.
+De las 17 amenazas analizadas, 14 quedan con riesgo residual Bajo y 3 con riesgo residual Medio. Ninguna queda con riesgo residual Alto o Crítico. Las tres con riesgo Medio requieren la aceptación formal de la federación:
 
-Pendientes para una próxima iteración:
+- **T14 (nota errónea):** depende de un proceso humano. La mitigación técnica (confirmación por la Mesa de Control y doble control) reduce el riesgo, pero no lo elimina.
+- **T10 (DDoS):** depende de la capacidad del proveedor de CDN. El riesgo se transfiere en buena parte, pero no por completo.
+- **T6 (sitio falso):** la federación no controla del todo el comportamiento de los usuarios finales.
 
+Antes de la puesta en producción, las contramedidas deben verificarse con pruebas de seguridad. Por ejemplo, comprobar que la API pública rechaza cualquier método distinto de GET y HEAD, realizar pruebas de inyección SQL sobre sus parámetros y confirmar que desde la DMZ no es posible iniciar conexiones hacia la red interna.
+
+**Conclusión de la iteración:** con el umbral definido, ninguna amenaza supera el riesgo aceptable, por lo que esta iteración se considera concluida, sujeta a la aceptación formal de T14, T10 y T6. Como el desarrollo aún no ha comenzado, quedan decisiones de diseño que deberán incorporarse en una próxima iteración del modelo:
+
+- Formalizar con la federación la aceptación de los riesgos residuales Medios (T14, T10 y T6) y del scraping razonable (T11)
 - Definir los umbrales de rate limiting y de conexiones SSE
-- La política de visibilidad de correcciones de notas
+- Definir la política de visibilidad de correcciones de notas
 - Elegir proveedor de CDN y su SLA
-- Validar con la federación qué datos de gimnastas se publican (si hay menores, evaluar la Ley 18.331)
-- Definir monitoreo y respuesta a incidentes de la DMZ
+- Validar con la federación qué datos de gimnastas se publican, su base de legitimación y la inscripción de la BD de publicación (Ley N.º 18.331), y evaluar el tratamiento de datos de menores, si los hubiera
+- Definir el monitoreo y la respuesta a incidentes de la DMZ, e incorporar sus flujos al DFD para analizarlos con STRIDE
 
 ---
 
@@ -263,8 +467,12 @@ Pendientes para una próxima iteración:
 
 A lo largo de este práctico aplicamos una nueva iteración del **OWASP Threat Modeling Process** sobre el tablero de puntajes público, desde la descomposición de la arquitectura hasta la evaluación del riesgo residual.
 
-La arquitectura hace inviable modificar una nota desde Internet: el tablero público es de solo lectura, no tiene endpoints de escritura, no accede a la BD principal y solo recibe datos ya confirmados por un canal unidireccional autenticado. Así se atiende la preocupación del presidente de la federación sin comprometer la disponibilidad ni la confidencialidad de los datos.
+- **Alcance:** el tablero incorpora un nuevo actor (el público anónimo) y una zona expuesta a Internet (la DMZ). Los diagramas de flujo de datos permitieron delimitar los seis flujos nuevos (12 a 17) y las fronteras de confianza entre Internet, la DMZ y la red interna.
+- **Amenazas:** con STRIDE se identificaron 17 amenazas, que DREAD priorizó en 1 Crítica, 10 Altas y 6 Medias. La más grave (T14) no es un ataque externo, sino la publicación de una nota provisoria o con error de tipeo.
+- **Mitigaciones:** la preocupación del presidente (T1) se trató eliminando la funcionalidad de escritura de la zona pública, con controles adicionales como defensa en profundidad. El resto se mitigó, y T10 se transfirió parcialmente al proveedor de CDN. De T11 se aceptó el scraping razonable.
+- **Riesgo residual:** 14 amenazas quedan con riesgo Bajo y 3 con riesgo Medio (T14, T10 y T6), que requieren la aceptación formal de la federación.
 
+En síntesis, la arquitectura propuesta elimina el principal vector de la preocupación del presidente: el tablero público es de solo lectura, no tiene endpoints de escritura, no accede a la BD principal y solo recibe datos ya confirmados por un canal unidireccional autenticado. Así, la modificación de una nota desde Internet queda con un riesgo residual Bajo. Los riesgos remanentes más relevantes son de otra naturaleza: los errores en el proceso humano de carga y publicación de notas, y la disponibilidad ante ataques de denegación de servicio, que depende en buena medida del proveedor de CDN. Las decisiones de diseño y las verificaciones pendientes se incorporarán en una próxima iteración del modelo, a medida que avance el desarrollo.
 
 ---
 
