@@ -59,9 +59,11 @@ Alejandro Piccardo
 
 ## Introducción
 
-El presente práctico tiene como objetivo aplicar una nueva iteración del **OWASP Threat Modeling Process** sobre el sistema de gestión de torneos de una federación deportiva, analizado en el teórico, al cual se le incorpora un tablero de puntajes público en Internet. El entregable comprende un diagrama de arquitectura que soporte el nuevo requerimiento y una nueva versión del modelo de amenazas, con los riesgos y las mitigaciones asociados. El diagrama y las tablas del modelo se elaboraron con [OWASP Threat Dragon](https://owasp.org/www-project-threat-dragon/) como herramienta de referencia.
+El presente práctico tiene como objetivo aplicar una nueva iteración del **OWASP Threat Modeling Process** sobre el sistema de gestión de torneos de una federación deportiva, analizado en el teórico, al cual se le incorpora un tablero de puntajes público en Internet. El entregable comprende un diagrama de arquitectura que soporte el nuevo requerimiento y una nueva versión del modelo de amenazas, con los riesgos y las mitigaciones asociados. El diagrama de arquitectura se elaboró con draw.io y los diagramas de flujo de datos con Mermaid, que permite mantenerlos como texto dentro de este documento.
 
-La federación incorpora un tablero de puntajes público, accesible desde una URL, con resultados en vivo y de torneos anteriores.
+La federación incorpora un tablero de puntajes público, accesible desde una URL, con resultados en vivo y de torneos anteriores. 
+
+> “En vivo” significa que cada nota se publica apenas la Mesa de Control la confirma, no en el momento en que la ingresa el juez.
 
 **Preocupación del presidente:** Que alguien modifique desde Internet la nota de una gimnasta.
 
@@ -83,7 +85,7 @@ El análisis adopta la perspectiva de un potencial atacante, en lugar de la del 
    * los **activos**, entendidos como cualquier elemento que se quiera proteger, desde un dato hasta un servidor;
    * los **niveles de confianza**, que representan los niveles de acceso otorgados a terceras entidades.
 
-2. **Determinar amenazas.** Se aplica **STRIDE** (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service y Elevation of privilege) sobre cada componente y flujo de los DFD. Las amenazas se priorizan con **DREAD** (Damage, Reproducibility, Exploitability, Affected users y Discoverability). El puntaje es el promedio de las cinco métricas, y Discoverability se asume en 10 salvo que exista una buena razón para otro valor. El ranking se ordena de forma descendente y el puntaje se expresa como nivel de severidad según la escala cualitativa de CVSS v4.0: Crítica (9.0 a 10.0), Alta (7.0 a 8.9), Media (4.0 a 6.9) y Baja (0.1 a 3.9).
+2. **Determinar amenazas**. Se aplica **STRIDE** sobre cada componente y flujo de los DFD, y las amenazas se priorizan con **DREAD**, expresando el resultado con la escala cualitativa de **CVSS v4.0**. Las tres herramientas se describen en el Paso 2.
 
 3. **Determinar las contramedidas y mitigaciones.** Para cada amenaza se selecciona un tratamiento, considerando la probabilidad del ataque, el daño que puede causar, el costo de implementar la contramedida y la complejidad de operarla:
    * **Aceptar:** el impacto en el negocio se considera tolerable y no se realiza otra acción. La decisión corresponde al dueño del proceso de negocio y nunca se toma exclusivamente desde el punto de vista técnico.
