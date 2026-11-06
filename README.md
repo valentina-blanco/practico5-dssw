@@ -140,6 +140,8 @@ Las zonas son las siguientes:
 
 ![Figura 2: Arquitectura propuesta para el tablero de puntajes público](images/diagrama_arquitectura_tablero_publico.png)
 
+> También se puede acceder al archivo original desde [diagrama_arquitectura_tablero_publico.drawio](drawio/diagrama_arquitectura_tablero_publico.drawio)
+
 ### Principios de diseño
 
 1. El tablero público nunca se conecta a la BD principal.
