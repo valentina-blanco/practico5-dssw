@@ -1,127 +1,143 @@
-<mxfile host="65bd71144e">
-    <diagram id="arq-tablero-publico" name="Arquitectura tablero publico">
-        <mxGraphModel dx="2297" dy="2550" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="950" math="0" shadow="0">
-            <root>
-                <mxCell id="0"/>
-                <mxCell id="1" parent="0"/>
-                <mxCell id="titulo" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" value="Arquitectura propuesta - Tablero de puntajes público (OWASP Threat Modeling Process)" vertex="1">
-                    <mxGeometry height="30" width="900" x="20" y="-30" as="geometry"/>
-                </mxCell>
-                <mxCell id="zona_internet" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;opacity=60;" value="INTERNET (zona no confiable)" vertex="1">
-                    <mxGeometry height="760" width="220" x="20" y="20" as="geometry"/>
-                </mxCell>
-                <mxCell id="zona_dmz" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;opacity=60;" value="DMZ (zona pública, solo lectura)" vertex="1">
-                    <mxGeometry height="760" width="380" x="300" y="20" as="geometry"/>
-                </mxCell>
-                <mxCell id="zona_interna" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;opacity=60;" value="RED INTERNA (arena - WiFi con SSID exclusivo / Servidores)" vertex="1">
-                    <mxGeometry height="760" width="740" x="740" y="20" as="geometry"/>
-                </mxCell>
-                <mxCell id="ft1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#b85450;fontStyle=2;" value="Frontera de confianza 1&lt;br&gt;(Firewall Internet - DMZ)" vertex="1">
-                    <mxGeometry height="40" width="80" x="230" y="740" as="geometry"/>
-                </mxCell>
-                <mxCell id="ft2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#b85450;fontStyle=2;" value="Frontera de confianza 2&lt;br&gt;(Firewall DMZ - Red interna)" vertex="1">
-                    <mxGeometry height="40" width="90" x="665" y="740" as="geometry"/>
-                </mxCell>
-                <mxCell id="actor_publico" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Público anónimo" vertex="1">
-                    <mxGeometry height="70" width="40" x="100" y="330" as="geometry"/>
-                </mxCell>
-                <mxCell id="cdn" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" value="CDN / WAF / Reverse proxy&lt;br&gt;(TLS 1.2+, HSTS, rate limiting)" vertex="1">
-                    <mxGeometry height="70" width="300" x="340" y="80" as="geometry"/>
-                </mxCell>
-                <mxCell id="spa" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="Tablero público estático&lt;br&gt;(SPA)&lt;br&gt;nginx sobre Linux con hardening&lt;br&gt;Solo contenido estático" vertex="1">
-                    <mxGeometry height="80" width="300" x="340" y="200" as="geometry"/>
-                </mxCell>
-                <mxCell id="api_pub" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="API pública de lectura&lt;br&gt;Solo métodos GET (sin escritura)&lt;br&gt;Resultados en vivo e históricos (SSE / polling)" vertex="1">
-                    <mxGeometry height="80" width="300" x="340" y="330" as="geometry"/>
-                </mxCell>
-                <mxCell id="bd_pub" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="BD de publicación&lt;br&gt;(base separada, solo datos publicables)&lt;br&gt;Cuentas: publicador = escritura&lt;br&gt;API pública = solo SELECT" vertex="1">
-                    <mxGeometry height="130" width="260" x="360" y="460" as="geometry"/>
-                </mxCell>
-                <mxCell id="nota_dmz" parent="1" style="text;html=1;strokeColor=#b85450;fillColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontColor=#b85450;fontStyle=1;whiteSpace=wrap;rounded=1;" value="La DMZ NO puede iniciar conexiones hacia la red interna" vertex="1">
-                    <mxGeometry height="50" width="300" x="340" y="625" as="geometry"/>
-                </mxCell>
-                <mxCell id="monitoreo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" value="Monitoreo y logs centralizados&lt;br&gt;(CDN/WAF, API pública, publicador)&lt;br&gt;Recolección iniciada desde la LAN" vertex="1">
-                    <mxGeometry height="50" width="300" x="340" y="690" as="geometry"/>
-                </mxCell>
-                <mxCell id="actor_juez" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Juez" vertex="1">
-                    <mxGeometry height="70" width="40" x="780" y="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="app_mobile" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="APP Mobile&lt;br&gt;(tableta Android de la federación)" vertex="1">
-                    <mxGeometry height="70" width="190" x="900" y="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="actor_mesa" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Mesa de control" vertex="1">
-                    <mxGeometry height="70" width="40" x="780" y="300" as="geometry"/>
-                </mxCell>
-                <mxCell id="actor_admin" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Admin" vertex="1">
-                    <mxGeometry height="70" width="40" x="780" y="440" as="geometry"/>
-                </mxCell>
-                <mxCell id="web_int" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="Web de gestión (SPA)&lt;br&gt;Mesa de control / Admin" vertex="1">
-                    <mxGeometry height="70" width="180" x="940" y="350" as="geometry"/>
-                </mxCell>
-                <mxCell id="api_int" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="API REST interna&lt;br&gt;(Spring sobre Linux con hardening)&lt;br&gt;Autenticación, roles, notas, resultados" vertex="1">
-                    <mxGeometry height="90" width="240" x="1180" y="190" as="geometry"/>
-                </mxCell>
-                <mxCell id="bd_ppal" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="BD principal&lt;br&gt;(PostgreSQL)&lt;br&gt;Notas, gimnastas, torneos" vertex="1">
-                    <mxGeometry height="110" width="200" x="1200" y="410" as="geometry"/>
-                </mxCell>
-                <mxCell id="sync" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" value="Servicio de sincronización&lt;br&gt;(publicador)&lt;br&gt;Publica solo resultados confirmados&lt;br&gt;por la Mesa de control" vertex="1">
-                    <mxGeometry height="80" width="280" x="1000" y="620" as="geometry"/>
-                </mxCell>
-                <mxCell id="e1" edge="1" parent="1" source="actor_publico" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="cdn" value="12 · HTTPS (443)">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e2" edge="1" parent="1" source="cdn" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="spa" value="13 · HTTPS">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e3" edge="1" parent="1" source="cdn" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;html=1;rounded=0;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="api_pub" value="14 · HTTPS (solo GET)">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="662" y="115"/>
-                            <mxPoint x="662" y="370"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="e4" edge="1" parent="1" source="api_pub" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="bd_pub" value="15 · PostgreSQL/TLS (cuenta SELECT)">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e5" edge="1" parent="1" source="actor_juez" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="app_mobile" value="Utiliza">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e6" edge="1" parent="1" source="app_mobile" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="api_int" value="REST / HTTPS (WiFi SSID exclusivo)">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e7" edge="1" parent="1" source="actor_mesa" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="web_int" value="HTTPS">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e8" edge="1" parent="1" source="actor_admin" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="web_int" value="HTTPS">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e9" edge="1" parent="1" source="web_int" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="api_int" value="REST / HTTPS">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e10" edge="1" parent="1" source="api_int" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="bd_ppal" value="JDBC">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e11" edge="1" parent="1" source="bd_ppal" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="sync" value="16 · Vista de confirmados (cuenta de solo lectura)">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e12" edge="1" parent="1" source="sync" style="endArrow=classic;html=1;rounded=0;fontSize=11;strokeWidth=3;strokeColor=#d79b00;fontStyle=1;" target="bd_pub" value="17 · PostgreSQL sobre mTLS (5432), iniciado desde la LAN">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="leyenda" parent="1" style="text;html=1;strokeColor=#666666;fillColor=#ffffff;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;spacing=8;rounded=1;" value="&lt;b&gt;Leyenda y principios de diseño&lt;/b&gt;&lt;br&gt;1. El tablero público es de solo lectura y nunca se conecta a la BD principal.&lt;br&gt;2. Por diseño, no existe ningún endpoint de escritura accesible desde Internet.&lt;br&gt;3. La sincronización es unidireccional (red interna hacia DMZ): la inicia siempre el servicio de sincronización, con TLS mutuo (certificado de cliente).&lt;br&gt;4. Solo se publican notas confirmadas individualmente por la Mesa de control.&lt;br&gt;5. La administración de la DMZ y de las cuentas del CDN/DNS se hace desde la red interna, con MFA y mínimo privilegio.&lt;br&gt;6. Líneas gruesas naranjas: flujos que cruzan la frontera DMZ - red interna (17 y 18).&lt;br&gt;7. Zonas punteadas: fronteras de confianza (Internet / DMZ / Red interna). Flujos 12 a 18: numeración del DFD del informe." vertex="1">
-                    <mxGeometry height="190" width="760" x="20" y="880" as="geometry"/>
-                </mxCell>
-                <mxCell id="fw1_reglas" parent="1" style="text;html=1;strokeColor=#b85450;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacing=6;rounded=1;" value="&lt;b&gt;Firewall 1 (Internet - DMZ)&lt;/b&gt;&lt;br&gt;Permite 443 entrante al CDN; deniega el resto." vertex="1">
-                    <mxGeometry height="60" width="270" x="20" y="800" as="geometry"/>
-                </mxCell>
-                <mxCell id="fw2_reglas" parent="1" style="text;html=1;strokeColor=#b85450;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacing=6;rounded=1;" value="&lt;b&gt;Firewall 2 (DMZ - Red interna)&lt;/b&gt;&lt;br&gt;Permite solo conexiones iniciadas desde la LAN (5432 del sincronizador, SSH del bastión, recolección de logs); deniega toda conexión iniciada desde la DMZ." vertex="1">
-                    <mxGeometry height="60" width="470" x="310" y="800" as="geometry"/>
-                </mxCell>
-                <mxCell id="e13" edge="1" parent="1" source="actor_admin" style="endArrow=classic;html=1;rounded=0;fontSize=11;strokeWidth=3;strokeColor=#d79b00;fontStyle=1;" target="zona_dmz" value="18 · SSH vía bastión / consolas CDN-DNS con MFA">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-
-            </root>
-        </mxGraphModel>
-    </diagram>
+<mxfile host="Electron">
+  <diagram id="arq-tablero-publico" name="Arquitectura tablero publico">
+    <mxGraphModel dx="798" dy="1640" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="titulo" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" value="Arquitectura propuesta - Tablero de puntajes público (OWASP Threat Modeling Process)" vertex="1">
+          <mxGeometry height="30" width="900" x="20" y="-30" as="geometry" />
+        </mxCell>
+        <mxCell id="zona_internet" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;opacity=60;" value="INTERNET (zona no confiable)" vertex="1">
+          <mxGeometry height="760" width="220" x="20" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="zona_dmz" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;opacity=60;" value="DMZ (zona pública, solo lectura)" vertex="1">
+          <mxGeometry height="760" width="380" x="300" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="zona_interna" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 4;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;opacity=60;" value="RED INTERNA (arena - WiFi con SSID exclusivo / Servidores)" vertex="1">
+          <mxGeometry height="760" width="740" x="740" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ft1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#b85450;fontStyle=2;rotation=0;" value="Frontera de confianza 1&lt;br&gt;(Firewall Internet - DMZ)" vertex="1">
+          <mxGeometry height="40" width="130" x="205" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="ft2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#b85450;fontStyle=2;rotation=0;" value="Frontera de confianza 2&lt;br&gt;(Firewall DMZ - Red interna)" vertex="1">
+          <mxGeometry height="40" width="130" x="650" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_publico" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Público anónimo" vertex="1">
+          <mxGeometry height="70" width="40" x="100" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="cdn" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" value="CDN / WAF / Reverse proxy&lt;br&gt;(TLS 1.2+, HSTS, rate limiting)" vertex="1">
+          <mxGeometry height="70" width="300" x="340" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="spa" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="Tablero público estático&lt;br&gt;(SPA)&lt;br&gt;nginx sobre Linux con hardening&lt;br&gt;Solo contenido estático" vertex="1">
+          <mxGeometry height="80" width="300" x="340" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="api_pub" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="API pública de lectura&lt;br&gt;Solo métodos GET (sin escritura)&lt;br&gt;Resultados en vivo e históricos (SSE / polling)" vertex="1">
+          <mxGeometry height="80" width="300" x="340" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="bd_pub" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="BD de publicación&lt;br&gt;(base separada, solo datos publicables)&lt;br&gt;Cuentas: publicador = escritura&lt;br&gt;API pública = solo SELECT" vertex="1">
+          <mxGeometry height="130" width="260" x="360" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="nota_dmz" parent="1" style="text;html=1;strokeColor=#b85450;fillColor=#ffffff;align=center;verticalAlign=middle;fontSize=12;fontColor=#b85450;fontStyle=1;whiteSpace=wrap;rounded=1;" value="La DMZ NO puede iniciar conexiones hacia la red interna" vertex="1">
+          <mxGeometry height="50" width="300" x="340" y="625" as="geometry" />
+        </mxCell>
+        <mxCell id="monitoreo" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" value="Monitoreo y logs centralizados&lt;br&gt;(CDN/WAF, API pública, publicador)&lt;br&gt;Recolección iniciada desde la LAN" vertex="1">
+          <mxGeometry height="50" width="300" x="340" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_juez" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Juez" vertex="1">
+          <mxGeometry height="70" width="40" x="780" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="app_mobile" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="APP Mobile&lt;br&gt;(tableta Android de la federación)" vertex="1">
+          <mxGeometry height="70" width="190" x="900" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_mesa" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Mesa de control" vertex="1">
+          <mxGeometry height="70" width="40" x="780" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_admin" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" value="Admin" vertex="1">
+          <mxGeometry height="70" width="40" x="780" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="web_int" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="Web de gestión (SPA)&lt;br&gt;Mesa de control / Admin" vertex="1">
+          <mxGeometry height="70" width="180" x="940" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="api_int" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" value="API REST interna&lt;br&gt;(Spring sobre Linux con hardening)&lt;br&gt;Autenticación, roles, notas, resultados" vertex="1">
+          <mxGeometry height="90" width="240" x="1180" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="bd_ppal" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="BD principal&lt;br&gt;(PostgreSQL)&lt;br&gt;Notas, gimnastas, torneos" vertex="1">
+          <mxGeometry height="110" width="200" x="1200" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="sync" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" value="Servicio de sincronización&lt;br&gt;(publicador)&lt;br&gt;Publica solo resultados confirmados&lt;br&gt;por la Mesa de control" vertex="1">
+          <mxGeometry height="80" width="280" x="1000" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="bastion" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" value="Bastión&lt;br&gt;(SSH, MFA)" vertex="1">
+          <mxGeometry height="40" width="130" x="860" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="consolas" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" value="Consolas CDN / DNS&lt;br&gt;(proveedor, fuera de las zonas)" vertex="1">
+          <mxGeometry height="60" width="220" x="800" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="actor_publico" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="cdn" value="12 · HTTPS (443)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="cdn" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="spa" value="13 · HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="cdn" style="edgeStyle=orthogonalEdgeStyle;endArrow=classic;html=1;rounded=0;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="api_pub" value="14 · HTTPS (solo GET)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="662" y="115" />
+              <mxPoint x="662" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="api_pub" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="bd_pub" value="15 · PostgreSQL/TLS (cuenta SELECT)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="actor_juez" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="app_mobile" value="Utiliza">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="app_mobile" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="api_int" value="REST / HTTPS (WiFi SSID exclusivo)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="actor_mesa" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="web_int" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="actor_admin" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="web_int" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="web_int" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="api_int" value="REST / HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="api_int" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="bd_ppal" value="JDBC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="bd_ppal" style="endArrow=classic;html=1;rounded=0;fontSize=11;" target="sync" value="16 · Vista de confirmados&lt;br&gt;(solo lectura, 2.º consumidor de la BD)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="sync" style="endArrow=classic;html=1;rounded=0;fontSize=11;strokeWidth=3;strokeColor=#d79b00;fontStyle=1;" target="bd_pub" value="17 · PostgreSQL sobre mTLS (5432), iniciado desde la LAN">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="leyenda" parent="1" style="text;html=1;strokeColor=#666666;fillColor=#ffffff;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;spacing=8;rounded=1;" value="&lt;b&gt;Leyenda y principios de diseño&lt;/b&gt;&lt;br&gt;1. El tablero público es de solo lectura y nunca se conecta a la BD principal.&lt;br&gt;2. Por diseño, no existe ningún endpoint de escritura accesible desde Internet.&lt;br&gt;3. La sincronización es unidireccional (red interna hacia DMZ): la inicia siempre el servicio de sincronización, con TLS mutuo (certificado de cliente).&lt;br&gt;4. Solo se publican notas confirmadas individualmente por la Mesa de control.&lt;br&gt;5. La administración de la DMZ y de las cuentas del CDN/DNS se hace desde la red interna, con MFA y mínimo privilegio.&lt;br&gt;6. Líneas gruesas naranjas: flujos iniciados desde la red interna hacia la DMZ o hacia el proveedor (17 y 18).&lt;br&gt;7. Zonas punteadas: fronteras de confianza (Internet / DMZ / Red interna). Flujos 12 a 18: numeración del DFD del informe." vertex="1">
+          <mxGeometry height="190" width="760" x="20" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="fw1_reglas" parent="1" style="text;html=1;strokeColor=#b85450;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacing=6;rounded=1;" value="&lt;b&gt;Firewall 1 (Internet - DMZ)&lt;/b&gt;&lt;br&gt;Permite 443 entrante al CDN; deniega el resto." vertex="1">
+          <mxGeometry height="60" width="270" x="20" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="fw2_reglas" parent="1" style="text;html=1;strokeColor=#b85450;fillColor=#ffffff;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;spacing=6;rounded=1;" value="&lt;b&gt;Firewall 2 (DMZ - Red interna)&lt;/b&gt;&lt;br&gt;Permite solo conexiones iniciadas desde la LAN (5432 del sincronizador, SSH del bastión, recolección de logs); deniega toda conexión iniciada desde la DMZ." vertex="1">
+          <mxGeometry height="60" width="430" x="310" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="actor_admin" style="endArrow=classic;html=1;rounded=0;fontSize=11;strokeWidth=3;strokeColor=#d79b00;fontStyle=1;" target="bastion" value="18 · SSH">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="bastion" style="endArrow=classic;html=1;rounded=0;fontSize=11;strokeWidth=3;strokeColor=#d79b00;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.658;entryDx=0;entryDy=0;" target="zona_dmz" value="18 · SSH (MFA)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="actor_admin" style="endArrow=classic;html=1;rounded=0;fontSize=11;strokeWidth=3;strokeColor=#d79b00;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="consolas" value="18 · consolas web CDN/DNS (MFA)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="475" />
+              <mxPoint x="760" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
 </mxfile>
