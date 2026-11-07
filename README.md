@@ -194,7 +194,7 @@ Siguiendo la numeración del modelo de amenazas anterior:
 | 4.2 | API pública: resultados en vivo | GET (SSE o polling) | (5) |
 | 4.3 | API pública: históricos | GET de torneos anteriores | (5) |
 | 5 | Canal de sincronización | Conexión PostgreSQL con mTLS para publicar resultados confirmados | (6) Servicio de sincronización |
-| 6 | SSH y consolas de administración | (2) Administrador |
+| 6 | SSH y consolas de administración | Acceso administrativo a la DMZ y a las consolas del CDN/DNS | (2) Administrador |
 
 #### Niveles de confianza
 
@@ -240,7 +240,7 @@ flowchart LR
 
 #### DFD nivel 2
 
-El DFD nivel 2 detalla los componentes nuevos y su relación con el sistema existente, delimitados por tres fronteras de confianza: Internet, DMZ y red interna (LAN). El sistema existente (App Mobile, App Web y REST) se representa como un proceso múltiple, porque sus flujos 1 a 11 no cambian. Los flujos **12** (Internet → DMZ), **17** y **18** (red interna → DMZ) cruzan fronteras de confianza. El flujo **16** ocurre dentro de la red interna y los flujos **13**, **14** y **15** dentro de la DMZ.
+El DFD nivel 2 detalla los componentes nuevos y su relación con el sistema existente, delimitados por tres fronteras de confianza: Internet, DMZ y red interna (LAN). El sistema existente (App Mobile, App Web y REST) se representa como un proceso múltiple, porque sus flujos 1 a 11 no cambian. Los flujos **12** (Internet → DMZ), **17** y **18** (red interna → DMZ y hacia las consolas del proveedor) cruzan fronteras de confianza. El flujo **16** ocurre dentro de la red interna y los flujos **13**, **14** y **15** dentro de la DMZ.
 
 Notación Yourdon: el cuadrado es un actor externo, el círculo un proceso, el doble círculo un proceso múltiple, el cilindro un almacén de datos y la línea punteada gruesa una frontera de confianza. Las líneas punteadas corresponden a flujos existentes.
 
@@ -268,6 +268,8 @@ flowchart LR
         sync(("Servicio de<br/>sincronización"))
     end
 
+    consolas["Consolas CDN / DNS<br/>(proveedor)"]
+
     publico -->|"12"| cdn
     cdn -->|"13"| spa
     cdn -->|"14"| apipub
@@ -275,6 +277,7 @@ flowchart LR
     bd -->|"16"| sync
     sync -->|"17"| bdpub
     admin -->|"18"| DMZ
+    admin -->|"18"| consolas
 
     juez -.->|"existentes<br/>(1 a 10)"| sistema
     mesa -.->|"existentes<br/>(1 a 10)"| sistema
@@ -296,15 +299,15 @@ Los flujos nuevos continúan la numeración del DFD nivel 2 existente.
 - **13** - CDN/WAF -> Tablero estático: Contenido estático (SPA)
 - **14** - CDN/WAF -> API pública: GET de resultados en vivo e históricos
 - **15** - API pública -> BD de publicación: Consultas SELECT
-- **16** - BD principal -> Servicio de sincronización: notas confirmadas, leídas con una cuenta de solo lectura sobre una vista que contiene únicamente resultados confirmados
+- **16** - BD principal -> Servicio de sincronización: notas confirmadas, leídas con una cuenta de solo lectura sobre una vista que contiene únicamente resultados confirmados. Es un segundo consumidor de la BD principal, además del servicio REST
 - **17** - Servicio de sincronización -> BD de publicación: escritura de resultados confirmados por PostgreSQL con mTLS, iniciada desde la red interna
-- **18** - Admin -> DMZ y cuentas del CDN/DNS: administración (SSH vía bastión, consolas con MFA)
+- **18** - Admin -> DMZ (SSH vía bastión) y Admin -> consolas web del CDN/DNS (proveedor, fuera de la DMZ), ambos con MFA
 
 <a name="paso-2"></a>
 
 ### Paso 2: Determinar amenazas
 
-En este paso se identifican las amenazas que podrían afectar a los componentes y flujos nuevos (flujos 12 a 18 del DFD nivel 2) y se las ordena según su gravedad. Para ello se emplean tres herramientas, que se describen a continuación para facilitar la lectura del informe.
+En este paso se identifican las amenazas que podrían afectar a los componentes y flujos nuevos (flujos 12 a 18 del DFD nivel 2, más el flujo existente 11 en el caso de T20) y se las ordena según su gravedad. Para ello se emplean tres herramientas, que se describen a continuación para facilitar la lectura del informe.
 
 #### STRIDE: identificación de amenazas
 
@@ -354,26 +357,26 @@ Cómo leer la tabla:
 
 | ID | STRIDE | Amenaza | Flujo | DREAD (D,R,E,A,D) | Severidad |
 | --- | --- | --- | --- | --- | --- |
-| T14 | Tampering | Se publica una nota provisoria o con error de tipeo | 16-17 | (8,7,10,10,10) = **9.0** | Crítica |
-| T1 | Tampering | Modificar una nota desde Internet por un endpoint de escritura o método HTTP habilitado por error (violación del principio de diseño 2) | 12-15 | (10,8,5,10,10) = **8.6** | Alta |
-| T2 | Tampering | Inyección SQL en la API pública | 14-15 | (8,8,6,10,10) = **8.4** | Alta |
-| T10 | Denial of Service | DDoS o pico de tráfico durante el torneo | 12-14 | (6,8,8,10,10) = **8.4** | Alta |
-| T8 | Information disclosure | La API expone datos no publicables (personales, notas provisorias, identidad de jueces) | 14-15 | (8,8,5,10,10) = **8.2** | Alta |
-| T3 | Spoofing / Tampering | Suplantación del servicio de sincronización para publicar notas falsas | 17 | (10,6,4,10,10) = **8.0** | Alta |
-| T6 | Spoofing | Sitio falso (phishing, typosquatting) o secuestro de DNS | 12 | (7,8,6,9,10) = **8.0** | Alta |
-| T12 | Elevation of privilege | Compromiso de la DMZ y pivoteo a la red interna | 17 | (10,5,5,10,10) = **8.0** | Alta |
-| T19 | Spoofing / Elevation of privilege | Compromiso de las cuentas administrativas de la DMZ o del CDN/DNS (cambio de contenido servido o de registros DNS) | 18 | (10,5,4,10,10) = **7.8** | Alta |
-| T5 | Tampering | XSS o defacement del tablero | 13 | (6,8,5,10,10) = **7.8** | Alta |
-| T13 | Elevation of privilege | Explotación de software o librerías vulnerables | 13-15 | (7,6,6,10,10) = **7.8** | Alta |
-| T18 | Tampering | EEnvenenamiento de la caché del CDN: se sirven notas falsas a todos los visitantes | 12-14 | (7,5,4,10,10) = **7.2** | Alta |
-| T4 | Tampering | Alteración o repetición de los datos del canal de sincronización en tránsito | (7,5,3,10,10) = **7.0** | Alta |
-| T20 | Tampering | Insider malicioso: un usuario con acceso legítimo altera una nota antes o después de su confirmación | 11, 16-17 | (10,5,5,10,5) = **7.0** | Alta |
-| T7 | Tampering / Information disclosure | Interceptación del tráfico por falta de TLS | 12-14 | (3,10,5,5,10) = **6.6** | Media |
-| T11 | Denial of Service | Scraping masivo o conexiones SSE persistentes | 14 | (2,10,8,3,10) = **6.6** | Media |
-| T17 | Denial of Service | Caída o bloqueo del servicio de sincronización: los resultados en vivo dejan de actualizarse | 16-17 | (4,5,4,10,10) = **6.6** | Media |
-| T15 | Repudiation | Cambios o publicaciones sin trazabilidad | 16-17 | (6,10,3,5,5) = **5.8** | Media |
-| T9 | Information disclosure | Errores detallados o banners de versión | 13-14 | (1,10,5,2,10) = **5.6** | Media |
-| T16 | Information disclosure | Lectura de los mensajes de sincronización en tránsito | 17 | (5,5,3,5,10) = **5.6** | Media |
+| T14 | Tampering | Se publica una nota provisoria o con error de tipeo | 16-17 | (8,7,10,10,10)/5 = **9.0** | Crítica |
+| T1 | Tampering | Modificar una nota desde Internet por un endpoint de escritura o método HTTP habilitado por error (violación del principio de diseño 2) | 12-15 | (10,8,5,10,10)/5 = **8.6** | Alta |
+| T2 | Tampering | Inyección SQL en la API pública | 14-15 | (8,8,6,10,10)/5 = **8.4** | Alta |
+| T10 | Denial of Service | DDoS o pico de tráfico durante el torneo | 12-14 | (6,8,8,10,10)/5 = **8.4** | Alta |
+| T8 | Information disclosure | La API expone datos no publicables (personales, notas provisorias, identidad de jueces) | 14-15 | (8,8,5,10,10)/5 = **8.2** | Alta |
+| T3 | Spoofing / Tampering | Suplantación del servicio de sincronización para publicar notas falsas | 17 | (10,6,4,10,10)/5 = **8.0** | Alta |
+| T6 | Spoofing | Sitio falso (phishing, typosquatting) o secuestro de DNS | 12 | (7,8,6,9,10)/5 = **8.0** | Alta |
+| T12 | Elevation of privilege | Compromiso de la DMZ y pivoteo a la red interna | 17 | (10,5,5,10,10)/5 = **8.0** | Alta |
+| T19 | Spoofing / Elevation of privilege | Compromiso de las cuentas administrativas de la DMZ o del CDN/DNS (cambio de contenido servido o de registros DNS) | 18 | (10,5,4,10,10)/5 = **7.8** | Alta |
+| T5 | Tampering | XSS o defacement del tablero | 13 | (6,8,5,10,10)/5 = **7.8** | Alta |
+| T13 | Elevation of privilege | Explotación de software o librerías vulnerables | 13-15 | (7,6,6,10,10)/5 = **7.8** | Alta |
+| T18 | Tampering | Envenenamiento de la caché del CDN: se sirven notas falsas a todos los visitantes | 12-14 | (7,5,4,10,10)/5 = **7.2** | Alta |
+| T4 | Tampering | Alteración o repetición de los datos del canal de sincronización en tránsito | 17 | (7,5,3,10,10)/5 = **7.0** | Alta |
+| T20 | Tampering | Insider malicioso: un usuario con acceso legítimo altera una nota antes o después de su confirmación | 11, 16-17 | (10,5,5,10,5)/5 = **7.0** | Alta |
+| T7 | Tampering / Information disclosure | Interceptación del tráfico por falta de TLS | 12-14 | (3,10,5,5,10)/5 = **6.6** | Media |
+| T11 | Denial of Service | Scraping masivo o conexiones SSE persistentes | 14 | (2,10,8,3,10)/5 = **6.6** | Media |
+| T17 | Denial of Service | Caída o bloqueo del servicio de sincronización: los resultados en vivo dejan de actualizarse | 16-17 | (4,5,4,10,10)/5 = **6.6** | Media |
+| T15 | Repudiation | Cambios o publicaciones sin trazabilidad | 16-17 | (6,10,3,5,5)/5 = **5.8** | Media |
+| T9 | Information disclosure | Errores detallados o banners de versión | 13-14 | (1,10,5,2,10)/5 = **5.6** | Media |
+| T16 | Information disclosure | Lectura de los mensajes de sincronización en tránsito | 17 | (5,5,3,5,10)/5 = **5.6** | Media |
 
 #### Criterio de puntuación DREAD
 
@@ -392,7 +395,7 @@ Los puntajes siguen la escala del teórico (10 = peor caso). Damage se valoró s
 | T19 | Permite cambiar el contenido servido o redirigir el dominio (D=10). Requiere robar credenciales (R=5, E=4). |
 | T5 | Muestra datos falsos en el navegador, pero no altera la base de datos (D=6). |
 | T13 | El impacto depende de la vulnerabilidad concreta (D=7). Depende de las versiones instaladas (R=6) y existen exploits conocidos (E=6). |
-| T18 | Requiere acceso al canal de sincronización (E=3) y su resultado depende del momento del ataque (R=5). |
+| T18 | Permite servir notas falsas a todos los visitantes sin tocar la BD (D=7). Requiere encontrar una inconsistencia entre la clave de caché y lo que procesa el origen (E=4), y el resultado depende de la configuración (R=5). |
 | T4 | Requiere acceso al canal de sincronización (E=3) y su resultado depende del momento del ataque (R=5). |
 | T20 | Un usuario legítimo puede alterar una nota a voluntad (D=10). Requiere acceso y privilegios (R=5, E=5). Lo ven todos (A=10). No es visible desde afuera (Discoverability=5). | 
 | T7 | Los datos son públicos, por lo que el daño es bajo (D=3). Siempre reproducible si el atacante está en la ruta de red (R=10), pero solo afecta a quienes comparten esa red (A=5). |
@@ -412,7 +415,7 @@ Para cada amenaza se eligió un tratamiento (aceptar, eliminar, mitigar o transf
 
 | ID | Tratamiento | Mitigación | Riesgo residual |
 | --- | --- | --- | --- |
-| T14 | Mitigar | Solo se publican notas confirmadas individualmente por la Mesa de Control. El servicio de sincronización las lee con una cuenta de solo lectura sobre una vista de confirmados (flujo 16). Las correcciones requieren doble control y quedan versionadas y visibles | Medio |
+| T14 | Mitigar | Solo se publican notas confirmadas individualmente por la Mesa de Control, de modo que “en vivo” significa que cada nota se publica apenas se confirma, sin esperar al cierre del torneo (ver Introducción). El servicio de sincronización las lee con una cuenta de solo lectura sobre una vista de confirmados (flujo 16). Las correcciones requieren doble control y quedan versionadas y visibles | Medio |
 | T1 | **Eliminar** (con defensa en profundidad) | Se elimina la funcionalidad de escritura de la zona pública: por diseño no hay endpoint de escritura en la DMZ ni ruta hacia la BD principal. Como defensa adicional, la API solo acepta GET/HEAD (el WAF bloquea el resto) y usa una cuenta de BD de solo SELECT. Se verifica en pruebas que no exista ningún otro método habilitado | Bajo |
 | T2 | Mitigar | Consultas parametrizadas, validación con lista blanca, cuenta de solo lectura, WAF | Bajo |
 | T10 | Mitigar y Transferir | CDN con caché de 1 a 2 s, rate limiting y escalado. La parte volumétrica se transfiere a la protección anti-DDoS del proveedor del CDN. El sistema interno sigue operando si cae el tablero | Medio |
@@ -442,7 +445,7 @@ La Ley N.º 18.331, de Protección de Datos Personales, regula el tratamiento de
 - **Datos adecuados y no excesivos (art. 7) y finalidad (art. 8):** la BD de publicación contiene solo los datos necesarios para mostrar resultados, y la API usa DTOs explícitos. Los datos se publican únicamente para ese fin.
 - **Consentimiento informado (art. 9):** el tratamiento requiere, en principio, consentimiento previo, expreso e informado. Corresponde a la federación definir y documentar la base que habilita la publicación.
 - **Seguridad (art. 10):** las contramedidas de este paso buscan evitar la adulteración, la pérdida y el acceso no autorizado a los datos.
-- **Inscripción (arts. 28 y 29):** toda base de datos debe inscribirse ante la URCDP, por lo que la federación debe verificar la situación de la BD de publicación.
+- **Inscripción (arts. 28 y 29):** quien crea una base de datos de carácter personal debe registrarla (art. 28), y toda base de datos, pública o privada, debe inscribirse en el registro del Órgano de Control, la URCDP (art. 29). La federación debe verificar la situación de la BD de publicación.
 
 Para mayor información, se puede visitar la [página oficial de IMPO.](https://www.impo.com.uy/bases/leyes/18331-2008)
 
@@ -461,7 +464,7 @@ De las 20 amenazas analizadas, 16 quedan con riesgo residual Bajo y 4 con riesgo
 
 Antes de la puesta en producción, las contramedidas deben verificarse con pruebas de seguridad. Por ejemplo, comprobar que la API pública rechaza cualquier método distinto de GET y HEAD, realizar pruebas de inyección SQL sobre sus parámetros y confirmar que desde la DMZ no es posible iniciar conexiones hacia la red interna.
 
-**Conclusión de la iteración:** con el umbral definido, ninguna amenaza supera el riesgo aceptable, por lo que esta iteración se considera concluida, sujeta a la aceptación formal de T14, T10 y T6. Como el desarrollo aún no ha comenzado, quedan decisiones de diseño que deberán incorporarse en una próxima iteración del modelo:
+**Conclusión de la iteración:** con el umbral definido, ninguna amenaza supera el riesgo aceptable, por lo que esta iteración se considera concluida, sujeta a la aceptación formal de T14, T10, T6 y T20. Como el desarrollo aún no ha comenzado, quedan decisiones de diseño que deberán incorporarse en una próxima iteración del modelo:
 
 - Formalizar con la federación la aceptación de los riesgos residuales Medios (T14, T10, T6 y T20) y del scraping razonable (T11)
 - Definir los umbrales de rate limiting y de conexiones SSE
