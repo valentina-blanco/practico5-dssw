@@ -44,10 +44,10 @@ Alejandro Piccardo
 * [Introducción](#introduccion)
 * [Diagrama de Arquitectura](#diagrama-de-arquitectura)
 * [Modelo de Amenazas](#modelo-de-amenazas)
-    * [Paso 1: Determinar el alcance](#paso-1)
-    * [Paso 2: Determinar amenazas](#paso-2)
-    * [Paso 3: Determinar las contramedidas y mitigaciones](#paso-3)
-    * [Paso 4: Evaluar el análisis realizado](#paso-4)
+    * [Paso 1: Determinar el alcance](#paso-1-determinar-el-alcance)
+    * [Paso 2: Determinar amenazas](#paso-2-determinar-amenazas)
+    * [Paso 3: Determinar las contramedidas y mitigaciones](#paso-3-determinar-las-contramedidas-y-mitigaciones)
+    * [Paso 4: Evaluar el análisis realizado](#paso-4-evaluar-el-análisis-realizado)
 * [Conclusiones](#conclusiones)
 
 ----------
